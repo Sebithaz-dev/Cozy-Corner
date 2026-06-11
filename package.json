@@ -1,0 +1,118 @@
+{
+  "name": "cozy-corner",
+  "displayName": "Cozy Corner",
+  "description": "Display your favorite image or GIF in a cozy sidebar corner of VS Code.",
+  "version": "0.1.0",
+  "publisher": "sebithaz-dev",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sebithaz-dev/Cozy-Corner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sebithaz-dev/Cozy-Corner/issues"
+  },
+  "homepage": "https://github.com/Sebithaz-dev/Cozy-Corner#readme",
+  "keywords": [
+    "image",
+    "gif",
+    "sidebar",
+    "cozy",
+    "companion",
+    "decorative",
+    "customization"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cozycorner.selectImage",
+        "title": "Cozy Corner: Select image"
+      },
+      {
+        "command": "cozycorner.focus",
+        "title": "Cozy Corner: Focus view"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "cozyCornerView",
+          "name": "Cozy Corner",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Cozy Corner",
+      "properties": {
+        "cozycorner.imagePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the image or GIF file"
+        },
+        "cozycorner.size": {
+          "type": "number",
+          "default": 220,
+          "minimum": 50,
+          "maximum": 800,
+          "description": "Width of the image in pixels"
+        },
+        "cozycorner.opacity": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Opacity of the image (0.0 = invisible, 1.0 = fully visible)"
+        },
+        "cozycorner.brightness": {
+          "type": "number",
+          "default": 100,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Brightness percentage (0 = black, 100 = full brightness)"
+        },
+        "cozycorner.framePolaroid": {
+          "type": "boolean",
+          "default": false,
+          "description": "Add an optional polaroid-style frame around the image"
+        },
+        "cozycorner.frameText": {
+          "type": "string",
+          "default": "",
+          "maxLength": 40,
+          "description": "Text displayed on the polaroid frame bottom (max 40 characters)"
+        },
+        "cozycorner.frameColor": {
+          "type": "string",
+          "default": "#ffffff",
+          "description": "Background color of the polaroid frame (hex format, e.g. #ffffff)"
+        },
+        "cozycorner.frameOpacity": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Opacity of the polaroid frame background only (0.0-1.0)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.7.0"
+  }
+}
