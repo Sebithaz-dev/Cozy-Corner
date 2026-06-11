@@ -101,6 +101,10 @@ class CozyCornerViewProvider {
         const rawSize = config.get('size', 220);
         const rawOpacity = config.get('opacity', 1.0);
         const rawBrightness = config.get('brightness', 100);
+        const rawPadding = config.get('padding', 16);
+        const rawBorderRadius = config.get('borderRadius', 8);
+        const shadow = config.get('shadow', false);
+        const rawScale = config.get('scale', 'fit');
         const frame = config.get('framePolaroid', false);
         const rawFrameText = config.get('frameText', '');
         const rawFrameColor = config.get('frameColor', '#ffffff');
@@ -109,6 +113,11 @@ class CozyCornerViewProvider {
         const size = Math.max(50, Math.min(800, Math.round(rawSize)));
         const opacity = Math.max(0, Math.min(1, rawOpacity));
         const brightness = Math.max(0, Math.min(100, Math.round(rawBrightness)));
+        const padding = Math.max(0, Math.min(16, Math.round(rawPadding)));
+        const borderRadius = Math.max(0, Math.min(8, Math.round(rawBorderRadius)));
+        const scale = ['fit', 'fill', 'original'].includes(rawScale)
+            ? rawScale
+            : 'fit';
         const frameOpacity = Math.max(0, Math.min(1, rawFrameOpacity));
         const frameColor = /^#[0-9a-fA-F]{6}$/.test(rawFrameColor)
             ? rawFrameColor
@@ -143,13 +152,13 @@ class CozyCornerViewProvider {
                 }
             }
         }
-        this._view.webview.html = this.getHtml(imageDataUri, size, opacity, brightness, frame, frameText, frameColor, frameOpacity);
+        this._view.webview.html = this.getHtml(imageDataUri, size, opacity, brightness, padding, borderRadius, shadow, scale, frame, frameText, frameColor, frameOpacity);
     }
-    getHtml(imageUri, size, opacity, brightness, frame, frameText, frameColor, frameOpacity) {
+    getHtml(imageUri, size, opacity, brightness, padding, borderRadius, shadow, scale, frame, frameText, frameColor, frameOpacity) {
         const brightnessPercent = Math.round(brightness);
         const imageHtml = imageUri
-            ? this.buildImageHtml(imageUri, size, opacity, brightnessPercent, frame, frameText, frameColor, frameOpacity)
-            : this.buildPlaceholderHtml();
+            ? this.buildImageHtml(imageUri, size, opacity, brightnessPercent, padding, borderRadius, shadow, scale, frame, frameText, frameColor, frameOpacity)
+            : this.buildPlaceholderHtml(padding);
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -168,7 +177,7 @@ class CozyCornerViewProvider {
         align-items: center;
         justify-content: center;
         min-height: 100vh;
-        padding: 16px;
+        padding: ${padding}px;
     }
 
     .container {
@@ -189,7 +198,7 @@ class CozyCornerViewProvider {
         display: block;
         max-width: 100%;
         height: auto;
-        border-radius: 8px;
+        border-radius: ${frame ? 2 : borderRadius}px;
         transition: opacity 0.3s ease, filter 0.3s ease;
     }
 
@@ -272,15 +281,30 @@ class CozyCornerViewProvider {
 </body>
 </html>`;
     }
-    buildImageHtml(imageUri, size, opacity, brightnessPercent, frame, frameText, frameColor, frameOpacity) {
-        const imgStyle = [
+    buildImageHtml(imageUri, size, opacity, brightnessPercent, padding, borderRadius, shadow, scale, frame, frameText, frameColor, frameOpacity) {
+        const imgStyleParts = [
             `opacity: ${opacity}`,
             `filter: brightness(${brightnessPercent}%)`,
-            `width: ${size}px`,
-        ].join('; ');
+        ];
+        if (scale === 'fill') {
+            imgStyleParts.push(`width: ${size}px`, `height: ${size}px`, 'object-fit: cover');
+        }
+        else if (scale === 'original') {
+            imgStyleParts.push('width: auto', 'height: auto', 'max-width: 100%', 'max-height: 80vh');
+        }
+        else {
+            imgStyleParts.push(`width: ${size}px`);
+        }
         if (!frame) {
-            return `<div class="image-wrapper">
-    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyle}" />
+            const wrapperStyleParts = [];
+            if (shadow) {
+                wrapperStyleParts.push('box-shadow: 0 2px 12px rgba(0,0,0,0.15)');
+            }
+            const wrapperStyle = wrapperStyleParts.length
+                ? ` style="${wrapperStyleParts.join('; ')}"`
+                : '';
+            return `<div class="image-wrapper"${wrapperStyle}>
+    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyleParts.join('; ')}" />
 </div>`;
         }
         const bgColor = this.hexToRgba(frameColor, frameOpacity);
@@ -288,7 +312,7 @@ class CozyCornerViewProvider {
             ? `<div class="polaroid-text">${this.escapeHtml(frameText)}</div>`
             : '';
         return `<div class="image-wrapper polaroid" style="background-color: ${bgColor}">
-    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyle}" />
+    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyleParts.join('; ')}" />
     ${textHtml}
 </div>`;
     }
@@ -311,8 +335,9 @@ class CozyCornerViewProvider {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
     }
-    buildPlaceholderHtml() {
-        return `<div class="placeholder">
+    buildPlaceholderHtml(padding) {
+        const style = padding > 0 ? ` style="padding-top: ${padding}px;"` : '';
+        return `<div class="placeholder"${style}>
     <div class="placeholder-icon">🖼️</div>
     <div class="placeholder-text">No image selected</div>
     <div class="placeholder-hint">

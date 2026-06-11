@@ -16,6 +16,8 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
 
 const ALLOWED_EXTENSIONS = Object.keys(ALLOWED_MIME_TYPES);
 
+type ScaleMode = 'fit' | 'fill' | 'original';
+
 export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'cozyCornerView';
     private _view: vscode.WebviewView | undefined;
@@ -86,6 +88,10 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
         const rawSize = config.get<number>('size', 220);
         const rawOpacity = config.get<number>('opacity', 1.0);
         const rawBrightness = config.get<number>('brightness', 100);
+        const rawPadding = config.get<number>('padding', 16);
+        const rawBorderRadius = config.get<number>('borderRadius', 8);
+        const shadow = config.get<boolean>('shadow', false);
+        const rawScale = config.get<string>('scale', 'fit');
         const frame = config.get<boolean>('framePolaroid', false);
         const rawFrameText = config.get<string>('frameText', '');
         const rawFrameColor = config.get<string>('frameColor', '#ffffff');
@@ -95,6 +101,11 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
         const size = Math.max(50, Math.min(800, Math.round(rawSize)));
         const opacity = Math.max(0, Math.min(1, rawOpacity));
         const brightness = Math.max(0, Math.min(100, Math.round(rawBrightness)));
+        const padding = Math.max(0, Math.min(16, Math.round(rawPadding)));
+        const borderRadius = Math.max(0, Math.min(8, Math.round(rawBorderRadius)));
+        const scale: ScaleMode = (['fit', 'fill', 'original'] as ScaleMode[]).includes(rawScale as ScaleMode)
+            ? (rawScale as ScaleMode)
+            : 'fit';
         const frameOpacity = Math.max(0, Math.min(1, rawFrameOpacity));
         const frameColor = /^#[0-9a-fA-F]{6}$/.test(rawFrameColor)
             ? rawFrameColor
@@ -138,8 +149,8 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
         }
 
         this._view.webview.html = this.getHtml(
-            imageDataUri, size, opacity, brightness, frame,
-            frameText, frameColor, frameOpacity,
+            imageDataUri, size, opacity, brightness, padding, borderRadius,
+            shadow, scale, frame, frameText, frameColor, frameOpacity,
         );
     }
 
@@ -148,6 +159,10 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
         size: number,
         opacity: number,
         brightness: number,
+        padding: number,
+        borderRadius: number,
+        shadow: boolean,
+        scale: ScaleMode,
         frame: boolean,
         frameText: string,
         frameColor: string,
@@ -157,10 +172,10 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
 
         const imageHtml = imageUri
             ? this.buildImageHtml(
-                imageUri, size, opacity, brightnessPercent, frame,
-                frameText, frameColor, frameOpacity,
+                imageUri, size, opacity, brightnessPercent, padding, borderRadius,
+                shadow, scale, frame, frameText, frameColor, frameOpacity,
               )
-            : this.buildPlaceholderHtml();
+            : this.buildPlaceholderHtml(padding);
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -180,7 +195,7 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
         align-items: center;
         justify-content: center;
         min-height: 100vh;
-        padding: 16px;
+        padding: ${padding}px;
     }
 
     .container {
@@ -201,7 +216,7 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
         display: block;
         max-width: 100%;
         height: auto;
-        border-radius: 8px;
+        border-radius: ${frame ? 2 : borderRadius}px;
         transition: opacity 0.3s ease, filter 0.3s ease;
     }
 
@@ -290,20 +305,39 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
         size: number,
         opacity: number,
         brightnessPercent: number,
+        padding: number,
+        borderRadius: number,
+        shadow: boolean,
+        scale: ScaleMode,
         frame: boolean,
         frameText: string,
         frameColor: string,
         frameOpacity: number,
     ): string {
-        const imgStyle = [
+        const imgStyleParts: string[] = [
             `opacity: ${opacity}`,
             `filter: brightness(${brightnessPercent}%)`,
-            `width: ${size}px`,
-        ].join('; ');
+        ];
+
+        if (scale === 'fill') {
+            imgStyleParts.push(`width: ${size}px`, `height: ${size}px`, 'object-fit: cover');
+        } else if (scale === 'original') {
+            imgStyleParts.push('width: auto', 'height: auto', 'max-width: 100%', 'max-height: 80vh');
+        } else {
+            imgStyleParts.push(`width: ${size}px`);
+        }
 
         if (!frame) {
-            return `<div class="image-wrapper">
-    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyle}" />
+            const wrapperStyleParts: string[] = [];
+            if (shadow) {
+                wrapperStyleParts.push('box-shadow: 0 2px 12px rgba(0,0,0,0.15)');
+            }
+            const wrapperStyle = wrapperStyleParts.length
+                ? ` style="${wrapperStyleParts.join('; ')}"`
+                : '';
+
+            return `<div class="image-wrapper"${wrapperStyle}>
+    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyleParts.join('; ')}" />
 </div>`;
         }
 
@@ -313,7 +347,7 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
             : '';
 
         return `<div class="image-wrapper polaroid" style="background-color: ${bgColor}">
-    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyle}" />
+    <img src="${imageUri}" alt="Cozy Corner" style="${imgStyleParts.join('; ')}" />
     ${textHtml}
 </div>`;
     }
@@ -337,8 +371,9 @@ export class CozyCornerViewProvider implements vscode.WebviewViewProvider {
             .replace(/'/g, '&#039;');
     }
 
-    private buildPlaceholderHtml(): string {
-        return `<div class="placeholder">
+    private buildPlaceholderHtml(padding: number): string {
+        const style = padding > 0 ? ` style="padding-top: ${padding}px;"` : '';
+        return `<div class="placeholder"${style}>
     <div class="placeholder-icon">🖼️</div>
     <div class="placeholder-text">No image selected</div>
     <div class="placeholder-hint">

@@ -6,8 +6,10 @@ Display an image or GIF in a cozy corner of your Visual Studio Code editor. A mi
 
 - Display images and GIFs directly in the Explorer panel
 - Adjustable size, opacity, and brightness
-- Optional polaroid-style frame with customizable color and opacity
-- Add text to the polaroid frame (max 40 characters)
+- Optional polaroid-style frame with customizable color, opacity and text
+- Adjustable padding and border-radius for the image
+- Optional shadow behind the image
+- Three scale modes: fit, fill (cropped square), original (natural size)
 - Comfortable night mode with brightness and opacity controls
 - Lightweight and zero distractions
 
@@ -32,7 +34,7 @@ Display an image or GIF in a cozy corner of your Visual Studio Code editor. A mi
 4. Install and enjoy.
 
 ### From VSIX
-1. Download the `cozy-corner-0.1.0.vsix` file.
+1. Download the `cozy-corner-0.3.0.vsix` file.
 2. Open Visual Studio Code.
 3. Go to Extensions (`Ctrl+Shift+X`).
 4. Click the `...` menu and select `Install from VSIX...`.
@@ -49,8 +51,12 @@ Display an image or GIF in a cozy corner of your Visual Studio Code editor. A mi
 {
   "cozycorner.imagePath": "/path/to/your/image.gif",
   "cozycorner.size": 220,
+  "cozycorner.padding": 16,
+  "cozycorner.borderRadius": 8,
   "cozycorner.opacity": 1.0,
   "cozycorner.brightness": 100,
+  "cozycorner.scale": "fit",
+  "cozycorner.shadow": false,
   "cozycorner.framePolaroid": false,
   "cozycorner.frameColor": "#ffffff",
   "cozycorner.frameOpacity": 1.0,
@@ -66,6 +72,10 @@ Display an image or GIF in a cozy corner of your Visual Studio Code editor. A mi
 | `cozycorner.size` | `220` | Width of the image in pixels |
 | `cozycorner.opacity` | `1.0` | Opacity of the image (0.0–1.0) |
 | `cozycorner.brightness` | `100` | Brightness percentage (0–100) |
+| `cozycorner.padding` | `16` | Padding around the image (0–16) |
+| `cozycorner.borderRadius` | `8` | Border radius of image corners (0–8) |
+| `cozycorner.scale` | `"fit"` | Scale mode: fit, fill, original |
+| `cozycorner.shadow` | `false` | Subtle shadow behind the image |
 | `cozycorner.framePolaroid` | `false` | Enable polaroid-style frame |
 | `cozycorner.frameColor` | `"#ffffff"` | Background color of the frame |
 | `cozycorner.frameOpacity` | `1.0` | Opacity of the frame background |

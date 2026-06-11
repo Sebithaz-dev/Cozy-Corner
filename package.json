@@ -2,7 +2,7 @@
   "name": "cozy-corner",
   "displayName": "Cozy Corner",
   "description": "Display your favorite image or GIF in a cozy sidebar corner of VS Code.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "sebithaz-dev",
   "license": "MIT",
   "icon": "assets/icon.png",
@@ -78,6 +78,31 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Brightness percentage (0 = black, 100 = full brightness)"
+        },
+        "cozycorner.padding": {
+          "type": "number",
+          "default": 16,
+          "minimum": 0,
+          "maximum": 16,
+          "description": "Padding around the image in pixels (0–16)"
+        },
+        "cozycorner.borderRadius": {
+          "type": "number",
+          "default": 8,
+          "minimum": 0,
+          "maximum": 8,
+          "description": "Border radius of the image corners in pixels (0–8)"
+        },
+        "cozycorner.shadow": {
+          "type": "boolean",
+          "default": false,
+          "description": "Add a subtle shadow behind the image"
+        },
+        "cozycorner.scale": {
+          "type": "string",
+          "default": "fit",
+          "enum": ["fit", "fill", "original"],
+          "description": "How the image scales: fit (constrained), fill (cropped square), original (natural size)"
         },
         "cozycorner.framePolaroid": {
           "type": "boolean",
