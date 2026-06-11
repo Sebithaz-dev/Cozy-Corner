@@ -2,7 +2,7 @@
   "name": "cozy-corner",
   "displayName": "Cozy Corner",
   "description": "Display your favorite image or GIF in a cozy sidebar corner of VS Code.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "sebithaz-dev",
   "license": "MIT",
   "icon": "assets/icon.png",
@@ -108,7 +108,8 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "check": "tsc -p ./ --noEmit"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",

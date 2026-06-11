@@ -37,6 +37,17 @@ exports.CozyCornerViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+    ico: 'image/x-icon',
+};
+const ALLOWED_EXTENSIONS = Object.keys(ALLOWED_MIME_TYPES);
 class CozyCornerViewProvider {
     static viewType = 'cozyCornerView';
     _view;
@@ -50,20 +61,16 @@ class CozyCornerViewProvider {
     resolveWebviewView(webviewView, _context, _token) {
         this._view = webviewView;
         webviewView.webview.options = {
-            enableScripts: true,
-            retainContextWhenHidden: true,
+            enableScripts: false,
         };
         webviewView.onDidDispose(() => {
             this._view = undefined;
         });
-        this.update();
+        return this.update();
     }
     focus() {
-        if (this._view) {
-            this._view.show?.(true);
-        }
-        else {
-            vscode.commands.executeCommand('workbench.view.explorer.focus');
+        vscode.commands.executeCommand('workbench.view.explorer.focus');
+        if (!this._view) {
             vscode.window.showInformationMessage('Expand the "Cozy Corner" section in the Explorer panel to see your image.');
         }
     }
@@ -72,15 +79,14 @@ class CozyCornerViewProvider {
             canSelectMany: false,
             title: 'Select an image for Cozy Corner',
             filters: {
-                'Images': ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'],
-                'All files': ['*'],
+                'Images': ALLOWED_EXTENSIONS,
             },
         });
         if (result && result[0]) {
             const config = vscode.workspace.getConfiguration('cozycorner');
             await config.update('imagePath', result[0].fsPath, vscode.ConfigurationTarget.Global);
             if (this._view) {
-                this.update();
+                await this.update();
             }
             else {
                 vscode.commands.executeCommand('workbench.view.explorer.focus');
@@ -88,43 +94,53 @@ class CozyCornerViewProvider {
             }
         }
     }
-    update() {
+    async update() {
         if (!this._view)
             return;
         const config = vscode.workspace.getConfiguration('cozycorner');
-        const imagePath = config.get('imagePath', '');
-        const size = config.get('size', 220);
-        const opacity = config.get('opacity', 1.0);
-        const brightness = config.get('brightness', 100);
+        const rawSize = config.get('size', 220);
+        const rawOpacity = config.get('opacity', 1.0);
+        const rawBrightness = config.get('brightness', 100);
         const frame = config.get('framePolaroid', false);
-        const frameText = config.get('frameText', '');
-        const frameColor = config.get('frameColor', '#ffffff');
-        const frameOpacity = config.get('frameOpacity', 1.0);
+        const rawFrameText = config.get('frameText', '');
+        const rawFrameColor = config.get('frameColor', '#ffffff');
+        const rawFrameOpacity = config.get('frameOpacity', 1.0);
+        const imagePath = config.get('imagePath', '');
+        const size = Math.max(50, Math.min(800, Math.round(rawSize)));
+        const opacity = Math.max(0, Math.min(1, rawOpacity));
+        const brightness = Math.max(0, Math.min(100, Math.round(rawBrightness)));
+        const frameOpacity = Math.max(0, Math.min(1, rawFrameOpacity));
+        const frameColor = /^#[0-9a-fA-F]{6}$/.test(rawFrameColor)
+            ? rawFrameColor
+            : '#ffffff';
+        const frameText = rawFrameText.slice(0, 40).trim();
         let imageDataUri = '';
         if (imagePath) {
             try {
-                if (fs.existsSync(imagePath)) {
-                    const fileBuffer = fs.readFileSync(imagePath);
-                    const ext = path.extname(imagePath).toLowerCase().slice(1);
-                    const mimeTypes = {
-                        png: 'image/png',
-                        jpg: 'image/jpeg',
-                        jpeg: 'image/jpeg',
-                        gif: 'image/gif',
-                        svg: 'image/svg+xml',
-                        webp: 'image/webp',
-                        bmp: 'image/bmp',
-                        ico: 'image/x-icon',
-                    };
-                    const mime = mimeTypes[ext] || 'image/png';
-                    imageDataUri = `data:${mime};base64,${fileBuffer.toString('base64')}`;
+                const stat = await fs.promises.stat(imagePath);
+                if (stat.size > MAX_IMAGE_SIZE_BYTES) {
+                    vscode.window.showWarningMessage('Cozy Corner: Image is too large. Please choose one under 10 MB.');
                 }
                 else {
-                    vscode.window.showWarningMessage(`Cozy Corner: Image not found at "${imagePath}"`);
+                    const ext = path.extname(imagePath).toLowerCase().slice(1);
+                    const mime = ALLOWED_MIME_TYPES[ext];
+                    if (!mime) {
+                        vscode.window.showWarningMessage(`Cozy Corner: Unsupported file format ".${ext}". Accepted: png, jpg, jpeg, gif, webp, bmp, ico`);
+                    }
+                    else {
+                        const fileBuffer = await fs.promises.readFile(imagePath);
+                        imageDataUri = `data:${mime};base64,${fileBuffer.toString('base64')}`;
+                    }
                 }
             }
             catch (err) {
-                vscode.window.showErrorMessage(`Cozy Corner: Failed to load image — ${err}`);
+                const nodeErr = err;
+                if (nodeErr.code === 'ENOENT') {
+                    vscode.window.showWarningMessage(`Cozy Corner: Image not found at "${imagePath}"`);
+                }
+                else {
+                    vscode.window.showErrorMessage('Cozy Corner: Failed to read the image file. Check permissions or path.');
+                }
             }
         }
         this._view.webview.html = this.getHtml(imageDataUri, size, opacity, brightness, frame, frameText, frameColor, frameOpacity);
@@ -139,6 +155,8 @@ class CozyCornerViewProvider {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src data:; style-src 'unsafe-inline';">
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -266,9 +284,8 @@ class CozyCornerViewProvider {
 </div>`;
         }
         const bgColor = this.hexToRgba(frameColor, frameOpacity);
-        const text = frameText.slice(0, 40).trim();
-        const textHtml = text
-            ? `<div class="polaroid-text">${this.escapeHtml(text)}</div>`
+        const textHtml = frameText
+            ? `<div class="polaroid-text">${this.escapeHtml(frameText)}</div>`
             : '';
         return `<div class="image-wrapper polaroid" style="background-color: ${bgColor}">
     <img src="${imageUri}" alt="Cozy Corner" style="${imgStyle}" />

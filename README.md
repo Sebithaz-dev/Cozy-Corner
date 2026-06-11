@@ -71,6 +71,14 @@ Display an image or GIF in a cozy corner of your Visual Studio Code editor. A mi
 | `cozycorner.frameOpacity` | `1.0` | Opacity of the frame background |
 | `cozycorner.frameText` | `""` | Text on the frame (max 40 chars) |
 
+## Privacy & Security
+
+- **No telemetry**: Cozy Corner does not collect any usage data or analytics.
+- **No network requests**: All processing is local. No external resources are loaded.
+- **Local files only**: The extension only loads image files you explicitly select.
+- **Size limit**: Images larger than 10 MB are rejected to prevent excessive memory usage.
+- **Permissions**: Cozy Corner only needs permission to read the image file you choose.
+
 ## Repository
 
 Source code is available on GitHub:
