@@ -13,13 +13,13 @@ Display an image or GIF in a cozy corner of your Visual Studio Code editor. A mi
 
 ## Preview
 
-##### Gif preview
-<p align="center">
+#### Gif preview
+<p align="start">
   <img src="assets/preview.gif" alt="Cozy Corner polaroid frame preview" width="600">
 </p>
 
-##### Image preview
-<p align="center">
+#### Image preview
+<p align="start">
   <img src="assets/preview.png" alt="Cozy Corner dimmed image preview" width="600">
 </p>
 
